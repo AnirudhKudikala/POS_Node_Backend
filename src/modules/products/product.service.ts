@@ -18,3 +18,16 @@ export const getProductByBarcode = async (
 
     return result.rows[0];
 };
+
+export const findProductByIds = async (
+    productIds: number[],
+): Promise<Product[]> => {
+    const result = await productQueries.findProductById(productIds);
+
+    return result.rows.map((row) => ({
+        id: row.id,
+        barcode: row.barcode,
+        name: row.name,
+        price: Number(row.price),
+    }));
+};

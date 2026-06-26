@@ -18,8 +18,7 @@ export const createSale = async (
             data: response,
         });
     } catch (error: any) {
-        console.log("e", error.flatten().fieldErrors);
-        if (error.flatten().fieldErrors.customerEmail[0] === "Invalid email address") {
+        if (error?.flatten()?.fieldErrors?.customerEmail[0] === "Invalid email address") {
             res.status(400).json({
                 success: false,
                 message: error.message

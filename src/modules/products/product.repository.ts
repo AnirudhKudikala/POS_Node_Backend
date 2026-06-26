@@ -29,3 +29,19 @@ export const getProductByBarcode = async (
 
     return pool.query(query, [barcode]);
 };
+
+export const findProductById = async (
+    productIds: number[]
+  ) => {
+    const query = `
+      SELECT
+        id,
+        barcode,
+        name,
+        price
+      FROM products
+      WHERE id = ANY($1);
+    `;
+  
+    return pool.query(query, [productIds]);
+};
