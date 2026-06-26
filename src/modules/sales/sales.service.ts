@@ -1,31 +1,88 @@
+import { pool } from "../../database/database";
+import { generateInvoiceNumber } from "../../utils/invoice";
 import * as productService from "../products/product.service";
-import { CreateSaleRequest, SaleResponse } from "./sales.types";
+import * as salesRepository from "./sales.repository";
+import { CalculatedSaleItem, CreateSaleRequest, SaleResponse } from "./sales.types";
 
 export const createSale = async (
     request: CreateSaleRequest,
 ): Promise<SaleResponse> => {
-    try{
-        const productIds = request.items.map((item) => item.productId);
+    const productIds = request.items.map((item) => item.productId);
 
-        const products = await productService.findProductByIds(productIds);
+    const products = await productService.findProductByIds(productIds);
 
-        if (products.length !== productIds.length) {
-            throw new Error("One or more products do not exist.");
+    if (products.length !== productIds.length) {
+        throw new Error("One or more products do not exist.");
+    }
+
+    const productMap = new Map(products.map(product => [product.id, product]));
+
+    const calculatedItems: CalculatedSaleItem[] = request.items.map(item => {
+
+        const product = productMap.get(item.productId);
+
+        if (!product) {
+            throw new Error(`Product ${item.productId} not found.`);
         }
 
-        console.log(products);
+        return {
+            productId: product?.id,
+            productName: product?.name,
+            unitPrice: product?.price,
+            quantity: item.quantity,
+            lineTotal: product?.price * item.quantity,
+        };
+    });
+
+    const totalAmount =  calculatedItems.reduce((total, item) => total + item.lineTotal, 0);
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const saleResult =
+            await salesRepository.createSale(
+                client,
+                {
+                    customerEmail:
+                        request.customerEmail,
+                    totalAmount,
+                }
+            );
+
+        const saleId = saleResult.rows[0].id;
+
+        const invoiceNumber =generateInvoiceNumber(saleId);
+
+        await salesRepository.updateInvoiceNumber(
+            client,
+            saleId,
+            invoiceNumber
+        );
+
+        for (const item of calculatedItems) {
+            await salesRepository.createSaleItem(
+                client,
+                {
+                    saleId,
+                    item,
+                }
+            );
+        }
+
+        await client.query("COMMIT");
 
         return {
-            saleId: 1,
-            invoiceNumber: "",
-            totalAmount: 0,
+            saleId,
+            invoiceNumber,
+            totalAmount,
         };
+
     } catch (error) {
-        console.error(error);
-        return {
-            saleId: 1,
-            invoiceNumber: "",
-            totalAmount: 0,
-        };
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
     }
 };
