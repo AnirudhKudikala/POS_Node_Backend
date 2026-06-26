@@ -31,16 +31,16 @@ export const generateReceipt = (data: ReceiptData): Promise<Buffer> => {
         data.items.forEach((item) => {
             doc.text(`${item.productName}`);
 
-            doc.text(`${item.quantity} × ${item.unitPrice}`);
+            doc.text(`${item.quantity} × ${item.unitPrice} INR`);
 
-            doc.text(`${item.lineTotal}`);
+            doc.text(`${item.lineTotal} INR`);
 
             doc.moveDown();
         });
 
         doc.fontSize(18);
 
-        doc.text(`Grand Total : ${data.totalAmount}`);
+        doc.text(`Grand Total : ${data.totalAmount} INR`);
 
         doc.moveDown();
 
