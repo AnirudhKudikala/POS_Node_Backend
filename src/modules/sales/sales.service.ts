@@ -2,6 +2,8 @@ import { pool } from "../../database/database";
 import { generateInvoiceNumber } from "../../utils/invoice";
 import * as productService from "../products/product.service";
 import * as salesRepository from "./sales.repository";
+import * as receiptService from "../receipts/receipt.service";
+import * as emailService from "../emails/email.service";
 import { CalculatedSaleItem, CreateSaleRequest, SaleResponse } from "./sales.types";
 
 export const createSale = async (
@@ -72,6 +74,26 @@ export const createSale = async (
         }
 
         await client.query("COMMIT");
+
+        const pdfBuffer =
+            await receiptService.generateReceipt({
+                invoiceNumber,
+                customerEmail:
+                    request.customerEmail,
+                totalAmount,
+                items: calculatedItems,
+            });
+
+        await emailService.sendEmail({
+            to: request.customerEmail,
+            subject: "Your Receipt",
+            text: "Thank you for shopping with us.",
+            attachment: {
+                filename:
+                    `${invoiceNumber}.pdf`,
+                content: pdfBuffer,
+            },
+        });
 
         return {
             saleId,
