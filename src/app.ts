@@ -1,11 +1,7 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import morgan from "morgan";
-import productRoutes from "./modules/products/product.route";
-import emailRoutes from './routes/email';
-
-dotenv.config();
+import routes from "./routes/index";
 
 const app = express();
 
@@ -15,8 +11,6 @@ app.use(express.json());
 
 app.use(morgan("dev"));
 
-app.use("/products", productRoutes);
-
-app.use('/email', emailRoutes);
+app.use(routes);
 
 export default app;
