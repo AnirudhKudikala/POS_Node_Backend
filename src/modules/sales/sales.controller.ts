@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import * as salesService from "./sales.service";
 import { createSaleSchema } from "./sales.validation";
-import { ErrorMapCtx } from "zod/v3";
-import { ZodError } from "zod";
 
 export const createSale = async (
     req: Request,
